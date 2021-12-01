@@ -27,7 +27,7 @@ test "countIncreases" {
     try testing.expectEqual(expected_result, result);
 }
 
-pub fn part1() anyerror!void {
+pub fn parseInputFile() anyerror![]u32 {
     var file = try std.fs.cwd().openFile("inputs/day1_1.txt", .{});
     defer file.close();
     var buf_reader = io.bufferedReader(file.reader());
@@ -39,7 +39,12 @@ pub fn part1() anyerror!void {
         var depth: u32 = try std.fmt.parseUnsigned(u32, line, 0);
         try depths.append(depth);
     }
-    const depth_increases = countIncreases(depths.items);
+    return depths.items;
+}
+
+pub fn part1() anyerror!void {
+    const depths = try parseInputFile();
+    const depth_increases = countIncreases(depths);
 
     std.debug.print("part1, number of increases: {d}\n", .{depth_increases});
 }
@@ -85,18 +90,8 @@ test "count3MeasurementSlidingWindows" {
 }
 
 pub fn part2() anyerror!void {
-    var file = try std.fs.cwd().openFile("inputs/day1_1.txt", .{});
-    defer file.close();
-    var buf_reader = io.bufferedReader(file.reader());
-    var in_stream = buf_reader.reader();
-    var buf: [1024]u8 = undefined;
-    var depths = std.ArrayList(u32).init(allocator);
-
-    while (try in_stream.readUntilDelimiterOrEof(&buf, '\n')) |line| {
-        var depth: u32 = try std.fmt.parseUnsigned(u32, line, 0);
-        try depths.append(depth);
-    }
-    const depth_increases = count3MeasurementSlidingWindows(depths.items);
+    const depths = try parseInputFile();
+    const depth_increases = count3MeasurementSlidingWindows(depths);
 
     std.debug.print("part2, number of increases: {d}\n", .{depth_increases});
 }
