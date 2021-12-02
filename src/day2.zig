@@ -2,10 +2,10 @@ const std = @import("std");
 const testing = std.testing;
 const io = std.io;
 
-pub const Part = enum { one, two };
-pub const Direction = enum { forward, down, up };
+const Part = enum { one, two };
+const Direction = enum { forward, down, up };
 
-pub const Command = struct {
+const Command = struct {
     dir: Direction = undefined,
     steps: i32 = undefined,
 
@@ -17,7 +17,7 @@ pub const Command = struct {
     }
 };
 
-pub const Position = struct {
+const Position = struct {
     depth: i32 = 0,
     horizontal: i32 = 0,
     aim: i32 = 0,
@@ -26,7 +26,7 @@ pub const Position = struct {
         return Position{ .depth = depth, .horizontal = horizontal, .aim = aim };
     }
 
-    pub fn movePart1(self: Position, command: Command) Position {
+    fn movePart1(self: Position, command: Command) Position {
         const new_position: Position = switch (command.dir) {
             Direction.forward => Position.init(self.depth, self.horizontal + command.steps, self.aim),
             Direction.down => Position.init(self.depth + command.steps, self.horizontal, self.aim),
@@ -36,7 +36,7 @@ pub const Position = struct {
         return new_position;
     }
 
-    pub fn movePart2(self: Position, command: Command) Position {
+    fn movePart2(self: Position, command: Command) Position {
         const new_position: Position = switch (command.dir) {
             Direction.forward => Position.init(self.depth + (self.aim * command.steps), self.horizontal + command.steps, self.aim),
             Direction.down => Position.init(self.depth, self.horizontal, self.aim + command.steps),
@@ -58,7 +58,7 @@ pub const Position = struct {
     }
 };
 
-pub fn parseLine(line: []const u8) anyerror!Command {
+fn findCommandDelimiterPosition(line: []const u8) u32 {
     var index: u32 = 0;
     var delimiter_pos: u32 = 0;
 
@@ -67,6 +67,12 @@ pub fn parseLine(line: []const u8) anyerror!Command {
             delimiter_pos = index;
         }
     }
+
+    return delimiter_pos;
+}
+
+fn parseLine(line: []const u8) anyerror!Command {
+    const delimiter_pos: u32 = findCommandDelimiterPosition(line);
 
     var direction_string = line[0..delimiter_pos];
     var step_string = line[(delimiter_pos + 1)..line.len];
@@ -88,7 +94,7 @@ pub fn parseLine(line: []const u8) anyerror!Command {
     return Command.init(direction, step);
 }
 
-pub fn calculatePosition(part: Part) anyerror!Position {
+fn calculatePosition(part: Part) anyerror!Position {
     var file = try std.fs.cwd().openFile("inputs/day2_1.txt", .{});
     defer file.close();
     var buf_reader = io.bufferedReader(file.reader());
@@ -103,12 +109,12 @@ pub fn calculatePosition(part: Part) anyerror!Position {
     return position;
 }
 
-pub fn part1() anyerror!void {
+fn part1() anyerror!void {
     const finalPosition: Position = try calculatePosition(Part.one);
     std.debug.print("part1, final position: (depth: {d}, horizontal: {d}), product: {d}\n", .{ finalPosition.depth, finalPosition.horizontal, finalPosition.product() });
 }
 
-pub fn part2() anyerror!void {
+fn part2() anyerror!void {
     const finalPosition: Position = try calculatePosition(Part.two);
     std.debug.print("part2, final position: (depth: {d}, horizontal: {d}), product: {d}\n", .{ finalPosition.depth, finalPosition.horizontal, finalPosition.product() });
 }
