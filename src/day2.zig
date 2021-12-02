@@ -1,6 +1,8 @@
 const std = @import("std");
 const testing = std.testing;
 const io = std.io;
+const ArrayList = std.ArrayList;
+const allocator = std.heap.page_allocator;
 
 const Part = enum { one, two };
 const Direction = enum { forward, down, up };
@@ -94,34 +96,43 @@ fn parseLine(line: []const u8) anyerror!Command {
     return Command.init(direction, step);
 }
 
-fn calculatePosition(part: Part) anyerror!Position {
+fn parseFile() anyerror![]Command {
     var file = try std.fs.cwd().openFile("inputs/day2_1.txt", .{});
     defer file.close();
     var buf_reader = io.bufferedReader(file.reader());
     var in_stream = buf_reader.reader();
     var buf: [1024]u8 = undefined;
-    var position: Position = Position.init(0, 0, 0);
+    var commands = std.ArrayList(Command).init(allocator);
 
     while (try in_stream.readUntilDelimiterOrEof(&buf, '\n')) |line| {
         var command: Command = try parseLine(line);
+        try commands.append(command);
+    }
+    return commands.items;
+}
+
+fn calculatePosition(commands: []Command, part: Part) Position {
+    var position: Position = Position.init(0, 0, 0);
+    for (commands) |command| {
         position = position.move(command, part);
     }
     return position;
 }
 
-fn part1() anyerror!void {
-    const finalPosition: Position = try calculatePosition(Part.one);
+fn part1(commands: []Command) void {
+    const finalPosition = calculatePosition(commands, Part.one);
     std.debug.print("part1, final position: (depth: {d}, horizontal: {d}), product: {d}\n", .{ finalPosition.depth, finalPosition.horizontal, finalPosition.product() });
 }
 
-fn part2() anyerror!void {
-    const finalPosition: Position = try calculatePosition(Part.two);
+fn part2(commands: []Command) void {
+    const finalPosition: Position = calculatePosition(commands, Part.two);
     std.debug.print("part2, final position: (depth: {d}, horizontal: {d}), product: {d}\n", .{ finalPosition.depth, finalPosition.horizontal, finalPosition.product() });
 }
 
 pub fn main() anyerror!void {
-    try part1();
-    try part2();
+    const commands = try parseFile();
+    part1(commands);
+    part2(commands);
 }
 
 test "parseLine" {
