@@ -4,6 +4,7 @@ const ArrayList = std.ArrayList;
 const allocator = std.heap.page_allocator;
 const io = std.io;
 
+pub const Part = enum { one, two };
 pub const Direction = enum { forward, down, up };
 
 pub const Command = struct {
@@ -47,6 +48,13 @@ pub const Position = struct {
         return new_position;
     }
 
+    pub fn move(self: Position, command: Command, part: Part) Position {
+        switch (part) {
+            Part.one => return self.movePart1(command),
+            Part.two => return self.movePart2(command),
+        }
+    }
+
     pub fn product(self: Position) i32 {
         return self.depth * self.horizontal;
     }
@@ -77,13 +85,12 @@ pub fn parseLine(line: []const u8) anyerror!Command {
     } else {
         std.debug.print("Direction [{s}]: is unknown!!", .{direction_string});
         unreachable;
-        // direction = Direction.up;
     }
 
     return Command.init(direction, step);
 }
 
-pub fn calculatePositionPart1() anyerror!Position {
+pub fn calculatePosition(part: Part) anyerror!Position {
     var file = try std.fs.cwd().openFile("inputs/day2_1.txt", .{});
     defer file.close();
     var buf_reader = io.bufferedReader(file.reader());
@@ -93,33 +100,18 @@ pub fn calculatePositionPart1() anyerror!Position {
 
     while (try in_stream.readUntilDelimiterOrEof(&buf, '\n')) |line| {
         var command: Command = try parseLine(line);
-        position = position.movePart1(command);
-    }
-    return position;
-}
-
-pub fn calculatePositionPart2() anyerror!Position {
-    var file = try std.fs.cwd().openFile("inputs/day2_1.txt", .{});
-    defer file.close();
-    var buf_reader = io.bufferedReader(file.reader());
-    var in_stream = buf_reader.reader();
-    var buf: [1024]u8 = undefined;
-    var position: Position = Position.init(0, 0, 0);
-
-    while (try in_stream.readUntilDelimiterOrEof(&buf, '\n')) |line| {
-        var command: Command = try parseLine(line);
-        position = position.movePart2(command);
+        position = position.move(command, part);
     }
     return position;
 }
 
 pub fn part1() anyerror!void {
-    const finalPosition: Position = try calculatePositionPart1();
+    const finalPosition: Position = try calculatePosition(Part.one);
     std.debug.print("part1, final position: (depth: {d}, horizontal: {d}), product: {d}\n", .{ finalPosition.depth, finalPosition.horizontal, finalPosition.product() });
 }
 
 pub fn part2() anyerror!void {
-    const finalPosition: Position = try calculatePositionPart2();
+    const finalPosition: Position = try calculatePosition(Part.two);
     std.debug.print("part2, final position: (depth: {d}, horizontal: {d}), product: {d}\n", .{ finalPosition.depth, finalPosition.horizontal, finalPosition.product() });
 }
 
@@ -153,10 +145,3 @@ test "parseLine" {
     try testing.expectEqual(expected_result.dir, result.dir);
     try testing.expectEqual(expected_result.steps, result.steps);
 }
-
-// forward 5
-// down 5
-// forward 8
-// up 3
-// down 8
-// forward 2
