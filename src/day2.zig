@@ -96,45 +96,6 @@ fn parseLine(line: []const u8) anyerror!Command {
     return Command.init(direction, step);
 }
 
-fn parseFile() anyerror![]Command {
-    var file = try std.fs.cwd().openFile("inputs/day2_1.txt", .{});
-    defer file.close();
-    var buf_reader = io.bufferedReader(file.reader());
-    var in_stream = buf_reader.reader();
-    var buf: [1024]u8 = undefined;
-    var commands = std.ArrayList(Command).init(allocator);
-
-    while (try in_stream.readUntilDelimiterOrEof(&buf, '\n')) |line| {
-        var command: Command = try parseLine(line);
-        try commands.append(command);
-    }
-    return commands.items;
-}
-
-fn calculatePosition(commands: []Command, part: Part) Position {
-    var position: Position = Position.init(0, 0, 0);
-    for (commands) |command| {
-        position = position.move(command, part);
-    }
-    return position;
-}
-
-fn part1(commands: []Command) void {
-    const finalPosition = calculatePosition(commands, Part.one);
-    std.debug.print("part1, final position: (depth: {d}, horizontal: {d}), product: {d}\n", .{ finalPosition.depth, finalPosition.horizontal, finalPosition.product() });
-}
-
-fn part2(commands: []Command) void {
-    const finalPosition: Position = calculatePosition(commands, Part.two);
-    std.debug.print("part2, final position: (depth: {d}, horizontal: {d}), product: {d}\n", .{ finalPosition.depth, finalPosition.horizontal, finalPosition.product() });
-}
-
-pub fn main() anyerror!void {
-    const commands = try parseFile();
-    part1(commands);
-    part2(commands);
-}
-
 test "parseLine" {
     const line1 = "forward 10";
     var expected_result: Command = Command.init(Direction.forward, 10);
@@ -159,4 +120,63 @@ test "parseLine" {
 
     try testing.expectEqual(expected_result.dir, result.dir);
     try testing.expectEqual(expected_result.steps, result.steps);
+}
+
+fn parseFile() anyerror![]Command {
+    var file = try std.fs.cwd().openFile("inputs/day2_1.txt", .{});
+    defer file.close();
+    var buf_reader = io.bufferedReader(file.reader());
+    var in_stream = buf_reader.reader();
+    var buf: [1024]u8 = undefined;
+    var commands = std.ArrayList(Command).init(allocator);
+
+    while (try in_stream.readUntilDelimiterOrEof(&buf, '\n')) |line| {
+        var command: Command = try parseLine(line);
+        try commands.append(command);
+    }
+    return commands.items;
+}
+
+fn calculatePosition(commands: []const Command, part: Part) Position {
+    var position: Position = Position.init(0, 0, 0);
+    for (commands) |command| {
+        position = position.move(command, part);
+    }
+    return position;
+}
+
+test "calculatePosition, part 1" {
+    const commands = [_]Command{ Command.init(Direction.forward, 5), Command.init(Direction.down, 5), Command.init(Direction.forward, 8), Command.init(Direction.up, 3), Command.init(Direction.down, 8), Command.init(Direction.forward, 2) };
+    var expected_result: Position = Position.init(10, 15, 0);
+
+    var result: Position = calculatePosition(commands[0..], Part.one);
+
+    try testing.expectEqual(expected_result.depth, result.depth);
+    try testing.expectEqual(expected_result.horizontal, result.horizontal);
+}
+
+test "calculatePosition, part 2" {
+    const commands = [_]Command{ Command.init(Direction.forward, 5), Command.init(Direction.down, 5), Command.init(Direction.forward, 8), Command.init(Direction.up, 3), Command.init(Direction.down, 8), Command.init(Direction.forward, 2) };
+    var expected_result: Position = Position.init(60, 15, 0);
+
+    var result: Position = calculatePosition(commands[0..], Part.two);
+
+    try testing.expectEqual(expected_result.depth, result.depth);
+    try testing.expectEqual(expected_result.horizontal, result.horizontal);
+}
+
+fn part1(commands: []Command) void {
+    const finalPosition = calculatePosition(commands, Part.one);
+    std.debug.print("part1, final position: (depth: {d}, horizontal: {d}), product: {d}\n", .{ finalPosition.depth, finalPosition.horizontal, finalPosition.product() });
+}
+
+fn part2(commands: []Command) void {
+    const finalPosition: Position = calculatePosition(commands, Part.two);
+    std.debug.print("part2, final position: (depth: {d}, horizontal: {d}), product: {d}\n", .{ finalPosition.depth, finalPosition.horizontal, finalPosition.product() });
+}
+
+pub fn main() anyerror!void {
+    const commands = try parseFile();
+    part1(commands);
+    part2(commands);
 }
