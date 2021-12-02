@@ -1,7 +1,5 @@
 const std = @import("std");
 const testing = std.testing;
-const ArrayList = std.ArrayList;
-const allocator = std.heap.page_allocator;
 const io = std.io;
 
 pub const Part = enum { one, two };
