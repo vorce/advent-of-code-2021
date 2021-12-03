@@ -7,19 +7,16 @@ const allocator = std.heap.page_allocator;
 fn parseLine(line: []const u8) anyerror![12]u2 {
     var index: u32 = 0;
     var binary = [12]u2{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    // var binary = std.ArrayList(u2).init(allocator);
 
     while (index < (line.len)) : (index += 1) {
         if (line[index] == '1') {
-            // try binary.append(1); // [index] = 1;
             binary[index] = 1;
         } else if (line[index] == '0') {
-            // try binary.append(0); // binary[index] = 0;
             binary[index] = 0;
         }
     }
 
-    return binary; //.items;
+    return binary;
 }
 
 test "parseLine" {
@@ -117,6 +114,106 @@ test "binaryToDecimal" {
     try testing.expectEqual(expected_result, result);
 }
 
+fn findOxygeneGeneratorRating(diagnostic_report: []const [12]u2, bit_index: u8) anyerror![12]u2 {
+    // std.debug.print("len: {d}, index: {d}\n", .{ diagnostic_report.len, bit_index });
+
+    if (diagnostic_report.len == 1) {
+        return diagnostic_report[0];
+    }
+
+    var zeros: u32 = 0;
+    var ones: u32 = 0;
+    for (diagnostic_report) |code| {
+        if (code[bit_index] == 1) {
+            ones += 1;
+        } else {
+            zeros += 1;
+        }
+    }
+    const most_common_bit: u2 = if (ones >= zeros) 1 else 0;
+
+    var filtered_report = std.ArrayList([12]u2).init(allocator);
+    for (diagnostic_report) |code| {
+        if (code[bit_index] == most_common_bit) {
+            try filtered_report.append(code);
+        }
+    }
+    const next_bit_index = bit_index + 1;
+    return findOxygeneGeneratorRating(filtered_report.items, next_bit_index);
+}
+
+fn findCO2ScrubberRating(diagnostic_report: []const [12]u2, bit_index: u8) anyerror![12]u2 {
+    // std.debug.print("len: {d}, index: {d}\n", .{ diagnostic_report.len, bit_index });
+
+    if (diagnostic_report.len == 1) {
+        return diagnostic_report[0];
+    }
+
+    var zeros: u32 = 0;
+    var ones: u32 = 0;
+    for (diagnostic_report) |code| {
+        if (code[bit_index] == 1) {
+            ones += 1;
+        } else {
+            zeros += 1;
+        }
+    }
+    const least_common_bit: u2 = if (ones < zeros) 1 else 0;
+
+    var filtered_report = std.ArrayList([12]u2).init(allocator);
+    for (diagnostic_report) |code| {
+        if (code[bit_index] == least_common_bit) {
+            try filtered_report.append(code);
+        }
+    }
+    const next_bit_index = bit_index + 1;
+    return findCO2ScrubberRating(filtered_report.items, next_bit_index);
+}
+
+test "findOxygeneGeneratorRating" {
+    const diagnostic_report: [12][12]u2 = [_][12]u2{
+        [12]u2{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0 }, // 00100
+        [12]u2{ 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0 }, // 11110
+        [12]u2{ 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0 }, // 10110
+        [12]u2{ 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1 }, // 10111
+        [12]u2{ 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1 }, // 10101
+        [12]u2{ 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1 }, // 01111
+        [12]u2{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1 }, // 00111
+        [12]u2{ 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0 }, // 11100
+        [12]u2{ 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0 }, // 10000
+        [12]u2{ 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1 }, // 11001
+        [12]u2{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0 }, // 00010
+        [12]u2{ 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0 }, // 01010
+    };
+    const expected_result = [12]u2{ 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1 };
+
+    const result = try findOxygeneGeneratorRating(diagnostic_report[0..], 0);
+
+    try testing.expect(std.mem.eql(u2, expected_result[0..], result[0..]));
+}
+
+// test "findCO2ScrubberRating" {
+//     const diagnostic_report: [12][12]u2 = [_][12]u2{
+//         [12]u2{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0 }, // 00100
+//         [12]u2{ 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0 }, // 11110
+//         [12]u2{ 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0 }, // 10110
+//         [12]u2{ 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1 }, // 10111
+//         [12]u2{ 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1 }, // 10101
+//         [12]u2{ 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1 }, // 01111
+//         [12]u2{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1 }, // 00111
+//         [12]u2{ 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0 }, // 11100
+//         [12]u2{ 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0 }, // 10000
+//         [12]u2{ 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1 }, // 11001
+//         [12]u2{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0 }, // 00010
+//         [12]u2{ 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0 }, // 01010
+//     };
+//     const expected_result = [12]u2{ 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0 };
+
+//     const result = try findCO2ScrubberRating(diagnostic_report[0..], 0);
+
+//     try testing.expect(std.mem.eql(u2, expected_result[0..], result[0..]));
+// }
+
 fn parseFile() anyerror![][12]u2 {
     var file = try std.fs.cwd().openFile("inputs/day3_1.txt", .{});
     defer file.close();
@@ -141,8 +238,18 @@ fn part1(diagnostic_report: []const [12]u2) void {
     std.debug.print("part1, gamma_rate: {d}, epsilon_rate: {d}, product: {d}", .{ gamma_dec, epsilon_dec, gamma_dec * epsilon_dec });
 }
 
+fn part2(diagnostic_report: []const [12]u2) anyerror!void {
+    // multiply the oxygen generator rating by the CO2 scrubber rating
+    const oxygene_generator_rating = try findOxygeneGeneratorRating(diagnostic_report, 0);
+    const oxygene_generator_dec = binaryToDecimal(oxygene_generator_rating);
+    const co2_scrubber_rating = try findCO2ScrubberRating(diagnostic_report, 0);
+    const co2_scrubber_dec = binaryToDecimal(co2_scrubber_rating);
+    // 3385170
+    std.debug.print("part2, oxygene_generator_dec: {d}, co2_scrubber_dec: {d}, product: {d}", .{ oxygene_generator_dec, co2_scrubber_dec, oxygene_generator_dec * co2_scrubber_dec });
+}
+
 pub fn main() anyerror!void {
     const diagnostic_report = try parseFile();
     part1(diagnostic_report);
-    // part2(commands);
+    try part2(diagnostic_report);
 }
