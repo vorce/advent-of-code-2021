@@ -107,26 +107,21 @@ const BingoBoard = struct {
         }
         return total_score;
     }
+};
 
-    fn print(self: *const BingoBoard) void {
-        var row: usize = 0;
-        var column: usize = 0;
-        while (row < (self.numbers.len)) : (row += 1) {
-            while (column < (self.numbers[row].len)) : (column += 1) {
-                std.debug.print("numbers[{d}][{d}] = {d};\n", .{ row, column, self.numbers[row][column] });
-            }
-            column = 0;
-            std.debug.print("\n", .{});
-        }
+const Game = struct {
+    bingo_boards: []BingoBoard,
+    numbers: []i32,
+
+    pub fn init(bingo_boards: []BingoBoard, numbers: []i32) Game {
+        return Game{ .bingo_boards = bingo_boards, .numbers = numbers };
     }
 };
 
-fn part1() !void {
-    const text = @embedFile("../inputs/day4_1.txt");
+fn parse(text: []const u8) !Game {
     var line_iter = std.mem.split(u8, text, "\n");
 
     var numbers = std.ArrayList(i32).init(gpa);
-    defer numbers.deinit();
 
     {
         const line = line_iter.next().?;
@@ -139,7 +134,6 @@ fn part1() !void {
     }
 
     var bingo_boards = std.ArrayList(BingoBoard).init(gpa);
-    defer bingo_boards.deinit();
     var bingo_board: BingoBoard = BingoBoard{};
 
     var row: usize = 0;
@@ -157,20 +151,49 @@ fn part1() !void {
         row += 1;
     }
 
-    for (numbers.items) |number| {
-        std.debug.print("Checking nr: {d}\n", .{number});
-        for (bingo_boards.items) |*board| {
+    return Game.init(bingo_boards.items, numbers.items);
+}
+
+fn part1(game: Game) !void {
+    for (game.numbers) |number| {
+        for (game.bingo_boards) |*board| {
             var position = try BingoBoard.markNumber(&board.number_position, number);
 
             if (board.checkBingo(position)) {
                 const score = board.score();
-                std.debug.print("BINGO! score: {d}, number: {d}, score * number: {d}\n", .{ score, number, score * number });
+                std.debug.print("First Bingo score: {d}, number: {d}, score * number: {d}\n", .{ score, number, score * number });
                 return;
             }
         }
     }
 }
 
+fn part2(game: Game) !void {
+    var winners = std.AutoHashMap(*BingoBoard, void).init(std.heap.page_allocator);
+    var last_bingo_score: i32 = 0;
+
+    for (game.numbers) |number| {
+        for (game.bingo_boards) |*board| {
+            if (winners.get(board)) |skip| {
+                _ = skip;
+                continue;
+            }
+
+            var position = try BingoBoard.markNumber(&board.number_position, number);
+
+            if (board.checkBingo(position)) {
+                const score = board.score();
+                try winners.put(board, {});
+                last_bingo_score = score * number;
+            }
+        }
+    }
+    std.debug.print("Last Bingo score: {d}\n", .{last_bingo_score});
+}
+
 pub fn main() anyerror!void {
-    try part1();
+    const text = @embedFile("../inputs/day4_1.txt");
+    var game = try parse(text);
+    try part1(game);
+    try part2(game);
 }
