@@ -4,7 +4,7 @@ const allocator = std.heap.page_allocator;
 var gpa_impl = std.heap.GeneralPurposeAllocator(.{}){};
 const gpa = &gpa_impl.allocator;
 
-// 0,9 -> 5,9
+const Part = enum { one, two };
 
 const Point = struct {
     x: i32 = 0,
@@ -52,6 +52,13 @@ const Line = struct {
         return self.start.x == self.end.x;
     }
 
+    pub fn isDiagonal(self: Line) !bool {
+        // |𝑥1−𝑥2|=|𝑦1−𝑦2|
+        const abs_x = try std.math.absInt(self.start.x - self.end.x);
+        const abs_y = try std.math.absInt(self.start.y - self.end.y);
+        return abs_x == abs_y;
+    }
+
     pub fn parse(raw_line: []const u8) !Line {
         var start: Point = undefined;
         var end: Point = undefined;
@@ -68,19 +75,32 @@ const Line = struct {
         return Line.init(start, end);
     }
 
-    pub fn points(self: Line) ![]Point {
+    pub fn points(self: Line, part: Part) ![]Point {
         var point_list = std.ArrayList(Point).init(gpa);
         var x: i32 = @minimum(self.start.x, self.end.x);
         var y: i32 = @minimum(self.start.y, self.end.y);
 
         if (self.isVertical()) {
-            std.debug.print("Line is vertical: {d}, {d} -> {d}, {d}\n", .{ self.start.x, self.start.y, self.end.x, self.end.y });
+            // std.debug.print("Line is vertical: {d},{d} -> {d},{d}\n", .{ self.start.x, self.start.y, self.end.x, self.end.y });
             while (y <= @maximum(self.start.y, self.end.y)) : (y += 1) {
                 try point_list.append(Point.init(x, y));
             }
         } else if (self.isHorizontal()) {
-            std.debug.print("Line is horizontal: {d}, {d} -> {d}, {d}\n", .{ self.start.x, self.start.y, self.end.x, self.end.y });
+            // std.debug.print("Line is horizontal: {d},{d} -> {d},{d}\n", .{ self.start.x, self.start.y, self.end.x, self.end.y });
             while (x <= @maximum(self.start.x, self.end.x)) : (x += 1) {
+                try point_list.append(Point.init(x, y));
+            }
+        } else if (part == Part.two and try self.isDiagonal()) {
+            // std.debug.print("Line is diagonal: {d},{d} -> {d},{d}\n", .{ self.start.x, self.start.y, self.end.x, self.end.y });
+            const add_x: i32 = if (self.start.x < self.end.x) 1 else -1;
+            const add_y: i32 = if (self.start.y < self.end.y) 1 else -1;
+            y = self.start.y;
+            x = self.start.x;
+
+            while (y != (self.end.y + add_y) and x != (self.end.x + add_x)) : ({
+                y += add_y;
+                x += add_x;
+            }) {
                 try point_list.append(Point.init(x, y));
             }
         }
@@ -142,18 +162,30 @@ test "Line.points 220, 930 -> 220, 507" {
     try testing.expectEqual(expected_result_len, result.len);
 }
 
-pub fn part1(text: []const u8) !void {
+test "Line.points 9,7 -> 7,9" {
+    const line = Line.init(Point.init(9, 7), Point.init(7, 9));
+    const expected_result = [_]Point{ Point.init(9, 7), Point.init(8, 8), Point.init(7, 9) };
+
+    var result: []Point = try line.points();
+
+    try testing.expectEqual(expected_result.len, result.len);
+    var index: usize = 0;
+    while (index < result.len) : (index += 1) {
+        try expected_result[index].expectEqual(result[index]);
+    }
+}
+
+pub fn count(text: []const u8, part: Part) !void {
     var line_iter = std.mem.split(u8, text, "\n");
     var point_coverage = std.AutoHashMap(Point, i32).init(std.heap.page_allocator);
     defer point_coverage.deinit();
     while (line_iter.next()) |line_str| {
         if (std.mem.eql(u8, line_str, "")) continue;
-        std.debug.print("Handling line: [{s}]\n", .{line_str});
+        // std.debug.print("Handling line: [{s}]\n", .{line_str});
         var line: Line = try Line.parse(line_str);
-        var points = try line.points();
+        var points = try line.points(part);
         for (points) |point| {
             if (point_coverage.get(point)) |coverage| {
-                // std.debug.print("Updating point [{d}, {d}] exists with coverage: {d}\n", .{ point.x, point.y, coverage });
                 try point_coverage.put(point, coverage + 1);
             } else {
                 try point_coverage.put(point, 1);
@@ -173,5 +205,6 @@ pub fn part1(text: []const u8) !void {
 
 pub fn main() anyerror!void {
     const text = @embedFile("../inputs/day5_1.txt");
-    try part1(text);
+    try count(text, Part.one);
+    try count(text, Part.two);
 }
