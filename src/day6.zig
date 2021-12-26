@@ -28,10 +28,10 @@ test "tick no newbords" {
 
     var result: []u8 = try tick(fish[0..]);
 
-    try std.testing.expectEqual(expected_result.len, result.len);
+    try testing.expectEqual(expected_result.len, result.len);
     var i: usize = 0;
     while (i < result.len) : (i += 1) {
-        try std.testing.expectEqual(expected_result[i], result[i]);
+        try testing.expectEqual(expected_result[i], result[i]);
     }
 }
 
@@ -41,10 +41,10 @@ test "tick with newborns" {
 
     var result: []u8 = try tick(fish[0..]);
 
-    try std.testing.expectEqual(expected_result.len, result.len);
+    try testing.expectEqual(expected_result.len, result.len);
     var i: usize = 0;
     while (i < result.len) : (i += 1) {
-        try std.testing.expectEqual(expected_result[i], result[i]);
+        try testing.expectEqual(expected_result[i], result[i]);
     }
 }
 
@@ -103,9 +103,9 @@ test "part2 for 80 days" {
 
     var result: u64 = try part2(start[0..], 80);
 
-    try std.testing.expectEqual(expected_result, result);
+    try testing.expectEqual(expected_result, result);
     const part1_result = try part1(start[0..]);
-    try std.testing.expectEqual(part1_result, result);
+    try testing.expectEqual(part1_result, result);
 }
 
 pub fn main() !void {
